@@ -15,9 +15,9 @@ jobs:
           java-version: '17'
           distribution: temurin
           cache: gradle
-      - run: chmod +x gradlew && ./gradlew assembleDevDebug
+      - run: chmod +x gradlew && ./gradlew assembleProdBenchmark
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: dev-build
           name: Dev build
-          files: app/build/outputs/apk/dev/debug/*.apk
+          files: app/build/outputs/apk/prod/benchmark/*.apk
