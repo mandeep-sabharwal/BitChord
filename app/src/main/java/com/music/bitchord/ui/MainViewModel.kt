@@ -3277,8 +3277,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             // making a ready first screen feel as if it were still loading.
             delay(150)
             var next: String? = token
+            val seenTokens = HashSet<String>()
+            var barrenPages = 0
             while (next != null) {
                 val token = next
+                if (!seenTokens.add(token)) return@launch
                 // One dropped request used to end the walk for good, leaving a
                 // long playlist cut short on screen and in its menu (#1178).
                 val fetched = retryingOrNull(FILL_IN_RETRIES_MS) {
@@ -3319,9 +3322,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         continuation = fetched.continuation,
                     )
                 }
-                // A page with nothing new for any copy means the feed has looped
-                // back rather than run dry with a token still attached.
-                if (!progressed) return@launch
+                if (!progressed) {
+                    if (++barrenPages > FILL_IN_MAX_BARREN_PAGES) return@launch
+                    next = fetched.continuation
+                    continue
+                }
+                barrenPages = 0
                 _detailStack.value = updated
                 next = fetched.continuation
             }
@@ -3801,7 +3807,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
 /** Waits before each retry of a page's fill-in, as the service's own loader waits. */
 private val FILL_IN_RETRIES_MS = longArrayOf(2_000L, 5_000L, 15_000L)
-
+private const val FILL_IN_MAX_BARREN_PAGES = 3
 /** [attempt], then again after each of [waitsMs] while it answers null; null if it never answers. */
 internal suspend fun <T : Any> retryingOrNull(waitsMs: LongArray, attempt: suspend () -> T?): T? {
     attempt()?.let { return it }
