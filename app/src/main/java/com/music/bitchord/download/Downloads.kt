@@ -483,7 +483,26 @@ object Downloads {
             current + (target.id to record)
         }
     }
-
+        /**
+     * Adds tracks to a release that is already on record, without replacing
+     * anything about it.
+     *
+     * [rememberCollection] only runs for a whole-release download, so a track
+     * added to the playlist online afterwards and then downloaded on its own
+     * landed in Downloads but never in the playlist's own record, and so never
+     * on that playlist's downloaded page. New ids go on the end so the order the
+     * playlist already had is left alone. A no-op when [id] has no record.
+     */
+    fun addToCollection(id: String, videoIds: List<String>) {
+        if (videoIds.isEmpty() || id !in _collections.value) return
+        recordCollections { current ->
+            val existing = current[id] ?: return@recordCollections current
+            val merged = (existing.videoIds + videoIds).distinct()
+            if (merged.size == existing.videoIds.size) current
+            else current + (id to existing.copy(videoIds = merged))
+        }
+    }
+    
     /** Replace a collection's remote artwork URL with its durable local copy. */
     fun rememberCollectionArtwork(id: String, thumbnailUrl: String) {
         recordCollections { current ->
