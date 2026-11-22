@@ -15,6 +15,17 @@ jobs:
           java-version: '17'
           distribution: temurin
           cache: gradle
+      - name: Restore signing key
+        id: keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: debug-keystore-v1
+      - name: Create signing key if new
+        if: steps.keystore.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
       - run: chmod +x gradlew && ./gradlew assembleProdBenchmark
       - uses: softprops/action-gh-release@v2
         with:
