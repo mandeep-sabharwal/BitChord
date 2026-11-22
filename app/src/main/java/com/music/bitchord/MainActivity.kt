@@ -2416,6 +2416,23 @@ private fun BitChordApp(
                 }
             }
         }
+                // A track downloaded on its own is not a release, but when it is taken
+        // off the page of a playlist that was already downloaded whole it still
+        // belongs to that playlist: without this it showed in Downloads and
+        // never on the playlist's downloaded copy. Only when every track asked
+        // for is on the open page, so a download started from the player or a
+        // search never lands in a playlist that just happens to be open below.
+        if (from == null && !blocked) {
+            val page = viewModel.detailStack.value.lastOrNull()
+            if (page != null && page.type == BrowseType.PLAYLIST) {
+                val bare = page.browseId.removePrefix("VL")
+                val recordId = Downloads.collections.value.keys.firstOrNull { it.removePrefix("VL") == bare }
+                val onPage = (page.songs as? UiState.Success)?.data?.mapTo(HashSet()) { it.videoId }
+                if (recordId != null && onPage != null && requested.all { it.videoId in onPage }) {
+                    Downloads.addToCollection(recordId, requested.map { it.videoId })
+                }
+            }
+        } 
         when {
             // The row's own icon reports a queued download, so a single tap
             // normally needs no toast — but a refused one leaves the row exactly
